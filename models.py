@@ -2,7 +2,7 @@ import peewee
 from peewee import *
 
 
-db = MySQLDatabase('yelp_data_mining', user='USERNAME',passwd='PASSWORD')
+db = MySQLDatabase('yelp', user='akhil',passwd='')
 
 class Business(peewee.Model):
     """
@@ -22,19 +22,14 @@ class Business(peewee.Model):
       'open': True / False (corresponds to permanently closed, not business hours),
     }
     """
-    bid = peewee.PrimaryKeyField()
-    business_id = peewee.CharField()  # encrypted ID with letters, numbers, and symbols
+    business_id = peewee.CharField(primary_key=True)  # encrypted ID with letters, numbers, and symbols
     name = peewee.CharField()
-    full_address = peewee.CharField()
     city = peewee.CharField()
-    state = peewee.CharField(max_length=2)  # AZ
+    state = peewee.CharField()  # AZ
     latitude = peewee.CharField()
     longitude = peewee.CharField()
     stars = peewee.DecimalField()  # star rating rounded to half-stars
     review_count = peewee.BigIntegerField()
-    is_open = peewee.BooleanField()
-    # neighborhoods = None # list of hood names
-    # categories = None # list of category names
 
     class Meta:
         database = db
@@ -73,7 +68,7 @@ class Review(peewee.Model):
       'votes': {'useful': (count), 'funny': (count), 'cool': (count)}
     }
     """
-    rid = peewee.PrimaryKeyField()
+    review_id = peewee.CharField(primary_key=True)
     business_id = peewee.CharField()
     user_id = peewee.CharField()
     stars = peewee.IntegerField()
@@ -97,8 +92,7 @@ class User(peewee.Model):
       'votes': {'useful': (count), 'funny': (count), 'cool': (count)}
     }
     """
-    uid = peewee.PrimaryKeyField()
-    user_id = peewee.CharField()
+    user_id = peewee.CharField(primary_key=True)
     name = peewee.CharField()
     review_count = peewee.IntegerField()
     average_stars = peewee.FloatField()
@@ -124,7 +118,7 @@ class Checkin(peewee.Model):
       } # if there was no checkin for an hour-day block it will not be in the dict
     }
     """
-    cid = peewee.PrimaryKeyField()
+    checkin_id = peewee.PrimaryKeyField()
     business_id = peewee.CharField()
     sunday_count = peewee.IntegerField(default=0)
     monday_count = peewee.IntegerField(default=0)
@@ -135,4 +129,26 @@ class Checkin(peewee.Model):
     saturday_count = peewee.IntegerField(default=0)
 
     class Meta:
+        database = db
+
+class Tip(peewee.Model):
+    """
+    {
+        'type': 'tip',
+        'text': (tip text),
+        'business_id': (encrypted business id),
+        'user_id': (encrypted user id),
+        'date': (date, formatted like '2012-03-14'),
+        'likes': (count),
+    }
+    """
+    tip_id = peewee.PrimaryKeyField()
+    business_id = peewee.CharField()
+    text = peewee.TextField()
+    user_id = peewee.CharField()
+    date = peewee.DateField(formats="%Y-%m-%d")  # '2012-03-14', %Y-%m-%d in strptime notation
+    likes = peewee.IntegerField()
+
+    class Meta:
+        primary_key = False
         database = db

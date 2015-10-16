@@ -5,13 +5,14 @@ from models import User
 from models import Checkin
 from models import Neighborhood
 from models import Category
+from models import Tip
 import json
 import decimal
 from datetime import datetime
 
-def iterate_file(model_name, shortcircuit=True, status_frequency=500):
+def iterate_file(model_name, shortcircuit, status_frequency=500):
     i = 0
-    jsonfilename = "json/yelp_training_set_%s.json" % model_name.lower()
+    jsonfilename = "json/yelp_academic_dataset_%s.json" % model_name.lower()
     with open(jsonfilename) as jfile:
         for line in jfile:
             i += 1
@@ -23,19 +24,17 @@ def iterate_file(model_name, shortcircuit=True, status_frequency=500):
                     
     
 def save_businesses():
-    for bdata in iterate_file("business", shortcircuit=False):
+    for bdata in iterate_file("business", shortcircuit=True):
         business = Business()
         business.business_id = bdata['business_id']
         business.name = bdata['name']
-        business.full_address = bdata['full_address']
         business.city = bdata['city']
         business.state = bdata['state']
         business.latitude = bdata['latitude']
         business.longitude = bdata['longitude']
         business.stars = decimal.Decimal(bdata.get('stars', 0))
         business.review_count = int(bdata['review_count'])
-        business.is_open = True if bdata['open'] == "True" else False
-        business.save()
+        business.save(force_insert=True)
 
         save_categories(bdata['business_id'], bdata['categories'])
         save_neighborhoods(bdata['business_id'], bdata['neighborhoods'])
@@ -57,8 +56,9 @@ def save_neighborhoods(business_id, hood_jarray):
         neighborhood.save()
 
 def save_reviews():
-    for rdata in iterate_file("review", shortcircuit=False):
+    for rdata in iterate_file("review", shortcircuit=True):
         rev = Review()
+        rev.review_id = rdata['review_id']
         rev.business_id = rdata['business_id']
         rev.user_id = rdata['user_id']
         rev.stars = int(rdata.get('stars', 0))
@@ -67,10 +67,10 @@ def save_reviews():
         rev.useful_votes = int(rdata['votes']['useful'])
         rev.funny_votes = int(rdata['votes']['funny'])
         rev.cool_votes = int(rdata['votes']['cool'])
-        rev.save()
+        rev.save(force_insert=True)
 
 def save_users():
-    for udata in iterate_file("user", shortcircuit=False):
+    for udata in iterate_file("user", shortcircuit=True):
         user = User()
         user.user_id = udata['user_id']
         user.name = udata['name']
@@ -79,10 +79,10 @@ def save_users():
         user.useful_votes = int(udata['votes']['useful'])
         user.funny_votes = int(udata['votes']['funny'])
         user.cool_votes = int(udata['votes']['cool'])
-        user.save()
+        user.save(force_insert=True)
 
 def save_checkins():
-    for cdata in iterate_file("checkin", shortcircuit=False):
+    for cdata in iterate_file("checkin", shortcircuit=True):
         checkin = Checkin()
         checkin.business_id = cdata['business_id']
         for day in range(7):
@@ -102,10 +102,21 @@ def save_checkins():
                     checkin.friday_count += number
                 elif day is 6:
                     checkin.saturday_count += number
-                    checkin.save()
+                checkin.save()
+
+def save_tips():
+    for tdata in iterate_file("tip", shortcircuit=True):
+        tip = Tip()
+        tip.business_id = tdata['business_id']
+        tip.text = tdata['text']
+        tip.user_id = tdata['user_id']
+        tip.date = datetime.strptime(tdata['date'], "%Y-%m-%d")
+        tip.likes = int(tdata['likes'])
+        tip.save()
 
 def reset_database():
-    tables = (Business, Review, User, Checkin, Neighborhood, Category,)
+    tables = (Business, Review, User, Checkin, Neighborhood, Category, Tip)
+    # tables = (Business, )
     for table in tables:
         # Nuke the Tables
         try:
@@ -124,6 +135,5 @@ if __name__ == "__main__":
     save_businesses()
     save_users()
     save_checkins()
-    save_review()
-
-    
+    save_reviews()
+    save_tips()
